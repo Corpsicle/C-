@@ -1,0 +1,15 @@
+C:\Users\alanb\OneDrive\Documents\Desktop\In easy Steps\C#\Assign\bin\Debug\net9.0\Assign.exe
+C:\Users\alanb\OneDrive\Documents\Desktop\In easy Steps\C#\Assign\bin\Debug\net9.0\Assign.deps.json
+C:\Users\alanb\OneDrive\Documents\Desktop\In easy Steps\C#\Assign\bin\Debug\net9.0\Assign.runtimeconfig.json
+C:\Users\alanb\OneDrive\Documents\Desktop\In easy Steps\C#\Assign\bin\Debug\net9.0\Assign.dll
+C:\Users\alanb\OneDrive\Documents\Desktop\In easy Steps\C#\Assign\bin\Debug\net9.0\Assign.pdb
+C:\Users\alanb\OneDrive\Documents\Desktop\In easy Steps\C#\Assign\obj\Debug\net9.0\Assign.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\alanb\OneDrive\Documents\Desktop\In easy Steps\C#\Assign\obj\Debug\net9.0\Assign.AssemblyInfoInputs.cache
+C:\Users\alanb\OneDrive\Documents\Desktop\In easy Steps\C#\Assign\obj\Debug\net9.0\Assign.AssemblyInfo.cs
+C:\Users\alanb\OneDrive\Documents\Desktop\In easy Steps\C#\Assign\obj\Debug\net9.0\Assign.csproj.CoreCompileInputs.cache
+C:\Users\alanb\OneDrive\Documents\Desktop\In easy Steps\C#\Assign\obj\Debug\net9.0\Assign.sourcelink.json
+C:\Users\alanb\OneDrive\Documents\Desktop\In easy Steps\C#\Assign\obj\Debug\net9.0\Assign.dll
+C:\Users\alanb\OneDrive\Documents\Desktop\In easy Steps\C#\Assign\obj\Debug\net9.0\refint\Assign.dll
+C:\Users\alanb\OneDrive\Documents\Desktop\In easy Steps\C#\Assign\obj\Debug\net9.0\Assign.pdb
+C:\Users\alanb\OneDrive\Documents\Desktop\In easy Steps\C#\Assign\obj\Debug\net9.0\Assign.genruntimeconfig.cache
+C:\Users\alanb\OneDrive\Documents\Desktop\In easy Steps\C#\Assign\obj\Debug\net9.0\ref\Assign.dll
