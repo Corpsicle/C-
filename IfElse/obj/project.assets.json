@@ -14,11 +14,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\alanb\\OneDrive\\Documents\\Desktop\\In easy Steps\\C#\\IfElse\\IfElse.csproj",
+      "projectUniqueName": "C:\\Users\\alanb\\source\\repos\\C#\\IfElse\\IfElse.csproj",
       "projectName": "IfElse",
-      "projectPath": "C:\\Users\\alanb\\OneDrive\\Documents\\Desktop\\In easy Steps\\C#\\IfElse\\IfElse.csproj",
+      "projectPath": "C:\\Users\\alanb\\source\\repos\\C#\\IfElse\\IfElse.csproj",
       "packagesPath": "C:\\Users\\alanb\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\alanb\\OneDrive\\Documents\\Desktop\\In easy Steps\\C#\\IfElse\\obj\\",
+      "outputPath": "C:\\Users\\alanb\\source\\repos\\C#\\IfElse\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -72,7 +72,7 @@
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.101/PortableRuntimeIdentifierGraph.json"
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.102/PortableRuntimeIdentifierGraph.json"
       }
     }
   }
