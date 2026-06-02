@@ -1,0 +1,15 @@
+C:\Users\alanb\source\repos\C#\ForEach\obj\Debug\net10.0\ForEach.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\alanb\source\repos\C#\ForEach\obj\Debug\net10.0\ForEach.AssemblyInfoInputs.cache
+C:\Users\alanb\source\repos\C#\ForEach\obj\Debug\net10.0\ForEach.AssemblyInfo.cs
+C:\Users\alanb\source\repos\C#\ForEach\obj\Debug\net10.0\ForEach.csproj.CoreCompileInputs.cache
+C:\Users\alanb\source\repos\C#\ForEach\obj\Debug\net10.0\ForEach.sourcelink.json
+C:\Users\alanb\source\repos\C#\ForEach\bin\Debug\net10.0\ForEach.exe
+C:\Users\alanb\source\repos\C#\ForEach\bin\Debug\net10.0\ForEach.deps.json
+C:\Users\alanb\source\repos\C#\ForEach\bin\Debug\net10.0\ForEach.runtimeconfig.json
+C:\Users\alanb\source\repos\C#\ForEach\bin\Debug\net10.0\ForEach.dll
+C:\Users\alanb\source\repos\C#\ForEach\bin\Debug\net10.0\ForEach.pdb
+C:\Users\alanb\source\repos\C#\ForEach\obj\Debug\net10.0\ForEach.dll
+C:\Users\alanb\source\repos\C#\ForEach\obj\Debug\net10.0\refint\ForEach.dll
+C:\Users\alanb\source\repos\C#\ForEach\obj\Debug\net10.0\ForEach.pdb
+C:\Users\alanb\source\repos\C#\ForEach\obj\Debug\net10.0\ForEach.genruntimeconfig.cache
+C:\Users\alanb\source\repos\C#\ForEach\obj\Debug\net10.0\ref\ForEach.dll

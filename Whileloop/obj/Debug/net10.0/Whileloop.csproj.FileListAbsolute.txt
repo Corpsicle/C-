@@ -1,0 +1,15 @@
+C:\Users\alanb\source\repos\C#\Whileloop\bin\Debug\net10.0\Whileloop.exe
+C:\Users\alanb\source\repos\C#\Whileloop\bin\Debug\net10.0\Whileloop.deps.json
+C:\Users\alanb\source\repos\C#\Whileloop\bin\Debug\net10.0\Whileloop.runtimeconfig.json
+C:\Users\alanb\source\repos\C#\Whileloop\bin\Debug\net10.0\Whileloop.dll
+C:\Users\alanb\source\repos\C#\Whileloop\bin\Debug\net10.0\Whileloop.pdb
+C:\Users\alanb\source\repos\C#\Whileloop\obj\Debug\net10.0\Whileloop.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\alanb\source\repos\C#\Whileloop\obj\Debug\net10.0\Whileloop.AssemblyInfoInputs.cache
+C:\Users\alanb\source\repos\C#\Whileloop\obj\Debug\net10.0\Whileloop.AssemblyInfo.cs
+C:\Users\alanb\source\repos\C#\Whileloop\obj\Debug\net10.0\Whileloop.csproj.CoreCompileInputs.cache
+C:\Users\alanb\source\repos\C#\Whileloop\obj\Debug\net10.0\Whileloop.sourcelink.json
+C:\Users\alanb\source\repos\C#\Whileloop\obj\Debug\net10.0\Whileloop.dll
+C:\Users\alanb\source\repos\C#\Whileloop\obj\Debug\net10.0\refint\Whileloop.dll
+C:\Users\alanb\source\repos\C#\Whileloop\obj\Debug\net10.0\Whileloop.pdb
+C:\Users\alanb\source\repos\C#\Whileloop\obj\Debug\net10.0\Whileloop.genruntimeconfig.cache
+C:\Users\alanb\source\repos\C#\Whileloop\obj\Debug\net10.0\ref\Whileloop.dll

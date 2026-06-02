@@ -1,0 +1,15 @@
+C:\Users\alanb\source\repos\C#\Precedence\obj\Debug\net10.0\Precedence.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\alanb\source\repos\C#\Precedence\obj\Debug\net10.0\Precedence.AssemblyInfoInputs.cache
+C:\Users\alanb\source\repos\C#\Precedence\obj\Debug\net10.0\Precedence.AssemblyInfo.cs
+C:\Users\alanb\source\repos\C#\Precedence\obj\Debug\net10.0\Precedence.csproj.CoreCompileInputs.cache
+C:\Users\alanb\source\repos\C#\Precedence\obj\Debug\net10.0\Precedence.sourcelink.json
+C:\Users\alanb\source\repos\C#\Precedence\bin\Debug\net10.0\Precedence.exe
+C:\Users\alanb\source\repos\C#\Precedence\bin\Debug\net10.0\Precedence.deps.json
+C:\Users\alanb\source\repos\C#\Precedence\bin\Debug\net10.0\Precedence.runtimeconfig.json
+C:\Users\alanb\source\repos\C#\Precedence\bin\Debug\net10.0\Precedence.dll
+C:\Users\alanb\source\repos\C#\Precedence\bin\Debug\net10.0\Precedence.pdb
+C:\Users\alanb\source\repos\C#\Precedence\obj\Debug\net10.0\Precedence.dll
+C:\Users\alanb\source\repos\C#\Precedence\obj\Debug\net10.0\refint\Precedence.dll
+C:\Users\alanb\source\repos\C#\Precedence\obj\Debug\net10.0\Precedence.pdb
+C:\Users\alanb\source\repos\C#\Precedence\obj\Debug\net10.0\Precedence.genruntimeconfig.cache
+C:\Users\alanb\source\repos\C#\Precedence\obj\Debug\net10.0\ref\Precedence.dll
