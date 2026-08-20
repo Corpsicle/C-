@@ -1,0 +1,27 @@
+﻿namespace Brian_s_Theme;
+
+public partial class Form1 : Form
+{
+    private System.ComponentModel.IContainer? components = null;
+
+    public Form1()
+    {
+        InitializeComponent();
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing && (components != null))
+        {
+            components.Dispose();
+        }
+        base.Dispose(disposing);
+    }
+
+    private void InitializeComponent()
+    {
+        components = new System.ComponentModel.Container();
+        this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+        this.Text = "Form1";
+    }
+}

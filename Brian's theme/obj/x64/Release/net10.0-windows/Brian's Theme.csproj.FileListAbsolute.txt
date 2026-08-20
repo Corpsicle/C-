@@ -1,0 +1,18 @@
+C:\Users\alanb\source\repos\C#\Brian's THeme\bin\x64\Release\net10.0-windows\Brian's Theme.exe
+C:\Users\alanb\source\repos\C#\Brian's THeme\bin\x64\Release\net10.0-windows\Brian's Theme.deps.json
+C:\Users\alanb\source\repos\C#\Brian's THeme\bin\x64\Release\net10.0-windows\Brian's Theme.runtimeconfig.json
+C:\Users\alanb\source\repos\C#\Brian's THeme\bin\x64\Release\net10.0-windows\Brian's Theme.dll
+C:\Users\alanb\source\repos\C#\Brian's THeme\bin\x64\Release\net10.0-windows\Brian's Theme.pdb
+C:\Users\alanb\source\repos\C#\Brian's THeme\obj\x64\Release\net10.0-windows\Brian_s_Theme.Form1.resources
+C:\Users\alanb\source\repos\C#\Brian's THeme\obj\x64\Release\net10.0-windows\Brian's Theme.csproj.GenerateResource.cache
+C:\Users\alanb\source\repos\C#\Brian's THeme\obj\x64\Release\net10.0-windows\Brian's Theme.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\alanb\source\repos\C#\Brian's THeme\obj\x64\Release\net10.0-windows\Brian's Theme.AssemblyInfoInputs.cache
+C:\Users\alanb\source\repos\C#\Brian's THeme\obj\x64\Release\net10.0-windows\Brian's Theme.AssemblyInfo.cs
+C:\Users\alanb\source\repos\C#\Brian's THeme\obj\x64\Release\net10.0-windows\Brian's Theme.csproj.CoreCompileInputs.cache
+C:\Users\alanb\source\repos\C#\Brian's THeme\obj\x64\Release\net10.0-windows\Brian's Theme.sourcelink.json
+C:\Users\alanb\source\repos\C#\Brian's THeme\obj\x64\Release\net10.0-windows\Brian's Theme.dll
+C:\Users\alanb\source\repos\C#\Brian's THeme\obj\x64\Release\net10.0-windows\refint\Brian's Theme.dll
+C:\Users\alanb\source\repos\C#\Brian's THeme\obj\x64\Release\net10.0-windows\Brian's Theme.pdb
+C:\Users\alanb\source\repos\C#\Brian's THeme\obj\x64\Release\net10.0-windows\Brian's Theme.genruntimeconfig.cache
+C:\Users\alanb\source\repos\C#\Brian's THeme\obj\x64\Release\net10.0-windows\ref\Brian's Theme.dll
+C:\Users\alanb\source\repos\C#\Brian's THeme\obj\x64\Release\net10.0-windows\Brian_s_Theme.SettingsForm.resources

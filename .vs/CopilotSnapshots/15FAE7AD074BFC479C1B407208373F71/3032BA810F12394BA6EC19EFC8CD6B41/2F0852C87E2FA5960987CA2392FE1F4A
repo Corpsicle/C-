@@ -1,0 +1,353 @@
+﻿using System;
+using System.Drawing;
+using System.Threading;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+using Microsoft.Win32;
+
+namespace Brian_s_Theme;
+
+public partial class Form1 : Form
+{
+    private readonly Random _rnd = new();
+    private volatile bool _running;
+    private CancellationTokenSource? _cts;
+    private Bitmap? _bitmap;
+    private readonly object _bitmapLock = new();
+    private bool _showTitle = true;
+    private bool _isLightTheme = true;
+    private Color _bgColor = Color.Black;
+    private Color _fgColor = Color.White;
+    private Label? _statusLabel;
+    private int _segmentDelayMs = 12;
+    private int _postPatternPauseMs = 600;
+    private bool _followSystemTheme = true;
+    private Color _lightBg = Color.White;
+    private Color _lightFg = Color.Black;
+    private Color _darkBg = Color.Black;
+    private Color _darkFg = Color.White;
+
+    public Form1()
+    {
+        InitializeComponent();
+        AutoScaleMode = AutoScaleMode.Dpi;
+        Text = "Brian's Theme";
+        DoubleBuffered = true;
+        KeyPreview = true;
+        Load += Form1_Load;
+        KeyDown += Form1_KeyDown;
+        FormClosing += Form1_FormClosing;
+        // status label at bottom showing step size and instructions
+        _statusLabel = new Label
+        {
+            Dock = DockStyle.Bottom,
+            Height = 30,
+            TextAlign = ContentAlignment.MiddleCenter,
+            BackColor = SystemColors.Control,
+            ForeColor = Color.Black,
+        };
+        Controls.Add(_statusLabel);
+        // apply current system theme and listen for changes
+        try
+        {
+            ApplyTheme(GetIsLightTheme());
+            SystemEvents.UserPreferenceChanged += SystemEvents_UserPreferenceChanged;
+        }
+        catch { }
+    }
+
+
+
+    private bool GetIsLightTheme()
+    {
+        try
+        {
+            using var key = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize");
+            if (key != null)
+            {
+                var val = key.GetValue("AppsUseLightTheme");
+                if (val is int i) return i != 0;
+                if (val is long l) return l != 0;
+            }
+        }
+        catch { }
+        return true;
+    }
+
+    private void ApplyTheme(bool isLight)
+    {
+        _isLightTheme = isLight;
+        // choose colors from configured palettes
+        if (_isLightTheme)
+        {
+            _bgColor = _lightBg;
+            _fgColor = _lightFg;
+        }
+        else
+        {
+            _bgColor = _darkBg;
+            _fgColor = _darkFg;
+        }
+
+        if (_statusLabel != null)
+        {
+            _statusLabel.BackColor = _isLightTheme ? SystemColors.Control : Color.FromArgb(30, 30, 30);
+            _statusLabel.ForeColor = _fgColor;
+        }
+
+        Invalidate();
+    }
+
+    private void SystemEvents_UserPreferenceChanged(object? sender, UserPreferenceChangedEventArgs e)
+    {
+        try
+        {
+            if (_followSystemTheme)
+                ApplyTheme(GetIsLightTheme());
+        }
+        catch { }
+    }
+
+    private void Form1_Load(object? sender, EventArgs e)
+    {
+        // initial paint
+        Invalidate();
+        if (_statusLabel != null)
+            _statusLabel.Text = "Press Enter to continue...";
+    }
+
+    private void Form1_FormClosing(object? sender, FormClosingEventArgs e)
+    {
+        StopAnimation();
+        try { SystemEvents.UserPreferenceChanged -= SystemEvents_UserPreferenceChanged; } catch { }
+    }
+
+    private void Form1_KeyDown(object? sender, KeyEventArgs e)
+    {
+        if (_showTitle && e.KeyCode == Keys.Enter)
+        {
+            _showTitle = false;
+            StartAnimation();
+            if (_statusLabel != null)
+                _statusLabel.Text = "Starting...";
+            e.Handled = true;
+            return;
+        }
+
+        // During animation, allow Escape to stop and return to title
+        if (!_showTitle && e.KeyCode == Keys.Escape)
+        {
+            StopAnimation();
+            _showTitle = true;
+            Invalidate();
+            if (_statusLabel != null)
+                _statusLabel.Text = "Press Enter to continue...";
+            e.Handled = true;
+            return;
+        }
+    }
+
+    protected override void OnPaint(PaintEventArgs e)
+    {
+        base.OnPaint(e);
+
+        var g = e.Graphics;
+        g.Clear(_bgColor);
+
+        if (_showTitle)
+        {
+            DrawTitle(g, ClientSize.Width, ClientSize.Height);
+            return;
+        }
+
+        lock (_bitmapLock)
+        {
+            if (_bitmap != null)
+            {
+                // draw the shared bitmap
+                g.DrawImage(_bitmap, 0, 0, ClientSize.Width, ClientSize.Height);
+            }
+        }
+    }
+
+    private void DrawTitle(Graphics g, int w, int h)
+    {
+        g.Clear(_bgColor);
+        using var titleFont = new Font("Segoe UI", 24, FontStyle.Bold);
+        using var byFont = new Font("Segoe UI", 14, FontStyle.Regular);
+        using var creditFont = new Font("Segoe UI", 12, FontStyle.Regular);
+
+        var sf = new StringFormat { Alignment = StringAlignment.Center };
+        using var brush = new SolidBrush(_fgColor);
+
+        g.DrawString("BRIAN'S THEME", titleFont, brush, new RectangleF(0, h * 0.20f, w, 70), sf);
+        g.DrawString("BY", byFont, brush, new RectangleF(0, h * 0.45f, w, 40), sf);
+        g.DrawString("BRIAN HOWARD", creditFont, brush, new RectangleF(0, h * 0.52f, w, 40), sf);
+        g.DrawString("COPYRIGHT 1979, APPLE COMPUTER INC.", creditFont, brush, new RectangleF(0, h * 0.65f, w, 40), sf);
+        g.DrawString("PRESS ENTER TO CONTINUE...", creditFont, brush, new RectangleF(0, h * 0.85f, w, 40), sf);
+    }
+
+    private void StartAnimation()
+    {
+        if (_running) return;
+        _running = true;
+        _cts = new CancellationTokenSource();
+
+        // run async loop without blocking UI thread
+        var token = _cts.Token;
+        Task.Run(async () => await AnimationLoopAsync(token), token);
+    }
+
+    private void StopAnimation()
+    {
+        if (!_running) return;
+        _cts?.Cancel();
+        _cts?.Dispose();
+        _cts = null;
+        _running = false;
+    }
+
+    private async Task AnimationLoopAsync(CancellationToken token)
+    {
+        try
+        {
+            while (!token.IsCancellationRequested)
+            {
+                int width = Math.Max(1, ClientSize.Width);
+                int height = Math.Max(1, ClientSize.Height);
+
+                float sx = width / 280f;
+                float sy = height / 160f;
+
+                int A = (int)(_rnd.NextDouble() * 279);
+                int B = (int)(_rnd.NextDouble() * 159);
+                int step = _rnd.Next(2, 5);
+
+                if (_statusLabel != null)
+                {
+                    try { BeginInvoke((Action)(() => _statusLabel.Text = $"Stepping by {step} — Press Esc to return")); }
+                    catch { }
+                }
+
+                var bmp = new Bitmap(width, height);
+                using (var g = Graphics.FromImage(bmp))
+                {
+                    g.Clear(_bgColor);
+                    g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.None;
+
+                    // publish the bitmap reference once so OnPaint can draw it safely under lock
+                    lock (_bitmapLock)
+                    {
+                        _bitmap?.Dispose();
+                        _bitmap = bmp;
+                    }
+
+                    // draw X-based lines
+                    for (int x = 0; x <= 278; x += step)
+                    {
+                        for (int s = 0; s <= 1; s++)
+                        {
+                            if (token.IsCancellationRequested) break;
+
+                            var color = s == 0 ? _fgColor : _bgColor;
+                            using var pen = new Pen(color);
+
+                            var x1 = (int)((x + s) * sx);
+                            var y1 = 0;
+                            var cx = (int)(A * sx);
+                            var cy = (int)(B * sy);
+
+                            lock (_bitmapLock)
+                            {
+                                g.DrawLine(pen, x1, y1, cx, cy);
+                            }
+
+                            try { BeginInvoke((Action)Invalidate); } catch { }
+                            await Task.Delay(12, token).ConfigureAwait(false);
+
+                            if (token.IsCancellationRequested) break;
+
+                            var x2 = (int)((279 - x - s) * sx);
+                            var y2 = height - 1;
+
+                            lock (_bitmapLock)
+                            {
+                                g.DrawLine(pen, cx, cy, x2, y2);
+                            }
+
+                            try { BeginInvoke((Action)Invalidate); } catch { }
+                            await Task.Delay(12, token).ConfigureAwait(false);
+                        }
+                        if (token.IsCancellationRequested) break;
+                    }
+
+                    // draw Y-based lines
+                    for (int y = 0; y <= 158; y += step)
+                    {
+                        for (int s = 0; s <= 1; s++)
+                        {
+                            if (token.IsCancellationRequested) break;
+
+                            var color = s == 0 ? _fgColor : _bgColor;
+                            using var pen = new Pen(color);
+
+                            var x1 = width - 1;
+                            var y1 = (int)((y + s) * sy);
+                            var cx = (int)(A * sx);
+                            var cy = (int)(B * sy);
+
+                            lock (_bitmapLock)
+                            {
+                                g.DrawLine(pen, x1, y1, cx, cy);
+                            }
+
+                            try { BeginInvoke((Action)Invalidate); } catch { }
+                            await Task.Delay(12, token).ConfigureAwait(false);
+
+                            if (token.IsCancellationRequested) break;
+
+                            var x2 = 0;
+                            var y2 = (int)((159 - y - s) * sy);
+
+                            lock (_bitmapLock)
+                            {
+                                g.DrawLine(pen, cx, cy, x2, y2);
+                            }
+
+                            try { BeginInvoke((Action)Invalidate); } catch { }
+                            await Task.Delay(12, token).ConfigureAwait(false);
+                        }
+                        if (token.IsCancellationRequested) break;
+                    }
+                }
+
+                // short pause after full pattern
+                try { await Task.Delay(600, token).ConfigureAwait(false); } catch (OperationCanceledException) { }
+            }
+        }
+        catch (OperationCanceledException) { }
+        finally
+        {
+            _running = false;
+        }
+    }
+
+    private void ReplaceBitmap(Bitmap newBmp)
+    {
+        // invoked from background thread
+        try
+        {
+            Invoke((Action)(() =>
+            {
+                _bitmap?.Dispose();
+                _bitmap = newBmp;
+                Invalidate();
+            }));
+        }
+        catch (ObjectDisposedException)
+        {
+            // form is closing
+            newBmp.Dispose();
+        }
+    }
+}

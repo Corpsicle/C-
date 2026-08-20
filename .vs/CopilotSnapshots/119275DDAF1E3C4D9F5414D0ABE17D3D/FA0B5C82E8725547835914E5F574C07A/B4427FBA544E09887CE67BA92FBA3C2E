@@ -1,0 +1,46 @@
+﻿using System;
+using System.Drawing;
+using System.Reflection;
+using System.Windows.Forms;
+using BenchmarkDotNet.Attributes;
+using Microsoft.VSDiagnostics;
+
+namespace BrianThemeBenchmarks
+{
+    [CPUUsageDiagnoser]
+    public class DrawFrameBenchmark
+    {
+        private BriansThemeCS.Form1 _form;
+        private Graphics _g;
+        private PaintEventArgs _args;
+        private MethodInfo _mi;
+        private Bitmap _bmp;
+        [GlobalSetup]
+        public void Setup()
+        {
+            _form = new BriansThemeCS.Form1();
+            // Ensure a minimal bitmap to draw onto; size doesn't need to match window for baseline
+            _bmp = new Bitmap(Math.Max(1, Math.Max(200, _form.ClientSize.Width)), Math.Max(1, Math.Max(200, _form.ClientSize.Height)));
+            _g = Graphics.FromImage(_bmp);
+            _args = new PaintEventArgs(_g, _form.ClientRectangle);
+            _mi = typeof(BriansThemeCS.Form1).GetMethod("DrawFrame", BindingFlags.Instance | BindingFlags.NonPublic);
+            if (_mi == null)
+            {
+                throw new InvalidOperationException("Could not find DrawFrame method via reflection.");
+            }
+        }
+
+        [GlobalCleanup]
+        public void Cleanup()
+        {
+            _g?.Dispose();
+            _bmp?.Dispose();
+        }
+
+        [Benchmark]
+        public void InvokeDrawFrame()
+        {
+            _mi.Invoke(_form, new object[] { _form, _args });
+        }
+    }
+}

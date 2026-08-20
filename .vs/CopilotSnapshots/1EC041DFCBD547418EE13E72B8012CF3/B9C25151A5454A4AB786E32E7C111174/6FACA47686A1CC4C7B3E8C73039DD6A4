@@ -1,0 +1,317 @@
+﻿using System;
+using System.Drawing;
+using System.Threading;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+
+namespace Brian_s_Theme;
+
+public partial class Form1 : Form
+{
+    private readonly Random _rnd = new();
+    private volatile bool _running;
+    private CancellationTokenSource? _cts;
+    private Bitmap? _bitmap;
+    private bool _showTitle = true;
+    private Label? _statusLabel;
+
+    public Form1()
+    {
+        InitializeComponent();
+        Text = "Brian's Theme";
+        DoubleBuffered = true;
+        KeyPreview = true;
+        Load += Form1_Load;
+        KeyDown += Form1_KeyDown;
+        FormClosing += Form1_FormClosing;
+        // status label at bottom showing step size and instructions
+        _statusLabel = new Label
+        {
+            Dock = DockStyle.Bottom,
+            Height = 30,
+            TextAlign = ContentAlignment.MiddleCenter,
+            BackColor = SystemColors.Control,
+            ForeColor = Color.Black,
+        };
+        Controls.Add(_statusLabel);
+    }
+
+    private void Form1_Load(object? sender, EventArgs e)
+    {
+        // initial paint
+        Invalidate();
+        if (_statusLabel != null)
+            _statusLabel.Text = "Press Enter to continue...";
+    }
+
+    private void Form1_FormClosing(object? sender, FormClosingEventArgs e)
+    {
+        StopAnimation();
+    }
+
+    private void Form1_KeyDown(object? sender, KeyEventArgs e)
+    {
+        if (_showTitle && e.KeyCode == Keys.Enter)
+        {
+            _showTitle = false;
+            StartAnimation();
+            if (_statusLabel != null)
+                _statusLabel.Text = "Starting...";
+            e.Handled = true;
+            return;
+        }
+
+        // During animation, allow Escape to stop and return to title
+        if (!_showTitle && e.KeyCode == Keys.Escape)
+        {
+            StopAnimation();
+            _showTitle = true;
+            Invalidate();
+            if (_statusLabel != null)
+                _statusLabel.Text = "Press Enter to continue...";
+            e.Handled = true;
+            return;
+        }
+    }
+
+    protected override void OnPaint(PaintEventArgs e)
+    {
+        base.OnPaint(e);
+
+        var g = e.Graphics;
+        g.Clear(Color.Black);
+
+        if (_showTitle)
+        {
+            DrawTitle(g, ClientSize.Width, ClientSize.Height);
+            return;
+        }
+
+        if (_bitmap != null)
+        {
+            // center the bitmap if sizes differ
+            g.DrawImage(_bitmap, 0, 0, ClientSize.Width, ClientSize.Height);
+        }
+    }
+
+    private static void DrawTitle(Graphics g, int w, int h)
+    {
+        g.Clear(SystemColors.Window);
+        using var titleFont = new Font("Segoe UI", 24, FontStyle.Bold);
+        using var byFont = new Font("Segoe UI", 14, FontStyle.Regular);
+        using var creditFont = new Font("Segoe UI", 12, FontStyle.Regular);
+
+        var sf = new StringFormat { Alignment = StringAlignment.Center };
+
+        g.DrawString("BRIAN'S THEME", titleFont, Brushes.Black, new RectangleF(0, h * 0.20f, w, 70), sf);
+        g.DrawString("BY", byFont, Brushes.Black, new RectangleF(0, h * 0.45f, w, 40), sf);
+        g.DrawString("BRIAN HOWARD", creditFont, Brushes.Black, new RectangleF(0, h * 0.52f, w, 40), sf);
+        g.DrawString("COPYRIGHT 1979, APPLE COMPUTER INC.", creditFont, Brushes.Black, new RectangleF(0, h * 0.65f, w, 40), sf);
+        g.DrawString("PRESS ENTER TO CONTINUE...", creditFont, Brushes.Black, new RectangleF(0, h * 0.85f, w, 40), sf);
+    }
+
+    private void StartAnimation()
+    {
+        if (_running) return;
+        _running = true;
+        _cts = new CancellationTokenSource();
+
+        Task.Run(() => AnimationLoop(_cts.Token), _cts.Token);
+    }
+
+    private void StopAnimation()
+    {
+        if (!_running) return;
+        _cts?.Cancel();
+        _cts?.Dispose();
+        _cts = null;
+        _running = false;
+    }
+
+    private void AnimationLoop(CancellationToken token)
+    {
+        try
+        {
+            while (!token.IsCancellationRequested)
+            {
+                // pick a random center within the original Apple coords mapped to current size
+                int width = Math.Max(1, ClientSize.Width);
+                int height = Math.Max(1, ClientSize.Height);
+
+                // Map Apple coords (280x160) to current window
+                float sx = width / 280f;
+                float sy = height / 160f;
+
+                int A = (int)(_rnd.NextDouble() * 279);
+                int B = (int)(_rnd.NextDouble() * 159);
+                int step = _rnd.Next(2, 5); // (RND*4)+2 in Applesoft gives 2..5
+
+                // update status label with step size
+                if (_statusLabel != null)
+                {
+                    try
+                    {
+                        Invoke((Action)(() => _statusLabel.Text = $"Stepping by {step} — Press Esc to return"));
+                    }
+                    catch (ObjectDisposedException) { }
+                }
+
+                // Create bitmap at native size for crisp lines and then scale on paint
+                var bmp = new Bitmap(width, height);
+                using (var g = Graphics.FromImage(bmp))
+                {
+                    g.Clear(Color.White);
+                    g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.None;
+
+                    // draw X-based lines, update UI after each line so user sees them drawn
+                    for (int x = 0; x <= 278; x += step)
+                    {
+                        for (int s = 0; s <= 1; s++)
+                        {
+                            if (token.IsCancellationRequested) break;
+
+                            var color = s == 0 ? Color.White : Color.Black;
+                            using var pen = new Pen(color);
+
+                            // first half-line
+                            var x1 = (int)((x + s) * sx);
+                            var y1 = 0;
+                            var cx = (int)(A * sx);
+                            var cy = (int)(B * sy);
+                            g.DrawLine(pen, x1, y1, cx, cy);
+
+                            // show the change
+                            if (token.IsCancellationRequested) break;
+                            try
+                            {
+                                Invoke((Action)(() =>
+                                {
+                                    _bitmap?.Dispose();
+                                    _bitmap = (Bitmap)bmp.Clone();
+                                    Invalidate();
+                                }));
+                            }
+                            catch (ObjectDisposedException) { break; }
+                            Thread.Sleep(12);
+
+                            if (token.IsCancellationRequested) break;
+
+                            // second half-line
+                            var x2 = (int)((279 - x - s) * sx);
+                            var y2 = height - 1;
+                            g.DrawLine(pen, cx, cy, x2, y2);
+
+                            // show the change
+                            if (token.IsCancellationRequested) break;
+                            try
+                            {
+                                Invoke((Action)(() =>
+                                {
+                                    _bitmap?.Dispose();
+                                    _bitmap = (Bitmap)bmp.Clone();
+                                    Invalidate();
+                                }));
+                            }
+                            catch (ObjectDisposedException) { break; }
+                            Thread.Sleep(12);
+                        }
+                        if (token.IsCancellationRequested) break;
+                    }
+
+                    // draw Y-based lines, update UI after each line
+                    for (int y = 0; y <= 158; y += step)
+                    {
+                        for (int s = 0; s <= 1; s++)
+                        {
+                            if (token.IsCancellationRequested) break;
+
+                            var color = s == 0 ? Color.Black : Color.White;
+                            using var pen = new Pen(color);
+
+                            var x1 = width - 1;
+                            var y1 = (int)((y + s) * sy);
+                            var cx = (int)(A * sx);
+                            var cy = (int)(B * sy);
+                            g.DrawLine(pen, x1, y1, cx, cy);
+
+                            // show
+                            if (token.IsCancellationRequested) break;
+                            try
+                            {
+                                Invoke((Action)(() =>
+                                {
+                                    _bitmap?.Dispose();
+                                    _bitmap = (Bitmap)bmp.Clone();
+                                    Invalidate();
+                                }));
+                            }
+                            catch (ObjectDisposedException) { break; }
+                            Thread.Sleep(12);
+
+                            if (token.IsCancellationRequested) break;
+
+                            var x2 = 0;
+                            var y2 = (int)((159 - y - s) * sy);
+                            g.DrawLine(pen, cx, cy, x2, y2);
+
+                            // show
+                            if (token.IsCancellationRequested) break;
+                            try
+                            {
+                                Invoke((Action)(() =>
+                                {
+                                    _bitmap?.Dispose();
+                                    _bitmap = (Bitmap)bmp.Clone();
+                                    Invalidate();
+                                }));
+                            }
+                            catch (ObjectDisposedException) { break; }
+                            Thread.Sleep(12);
+                        }
+                        if (token.IsCancellationRequested) break;
+                    }
+                }
+
+                if (token.IsCancellationRequested)
+                {
+                    bmp.Dispose();
+                    break;
+                }
+
+                // keep final bmp for a short pause so user sees completed pattern
+                ReplaceBitmap(bmp);
+
+                // pause roughly equivalent to Applesoft FOR PAUSE = 1 TO 1500 loop
+                for (int i = 0; i < 60; i++)
+                {
+                    if (token.IsCancellationRequested) break;
+                    Thread.Sleep(10);
+                }
+            }
+        }
+        catch (OperationCanceledException) { }
+        finally
+        {
+            _running = false;
+        }
+    }
+
+    private void ReplaceBitmap(Bitmap newBmp)
+    {
+        // invoked from background thread
+        try
+        {
+            Invoke((Action)(() =>
+            {
+                _bitmap?.Dispose();
+                _bitmap = newBmp;
+                Invalidate();
+            }));
+        }
+        catch (ObjectDisposedException)
+        {
+            // form is closing
+            newBmp.Dispose();
+        }
+    }
+}

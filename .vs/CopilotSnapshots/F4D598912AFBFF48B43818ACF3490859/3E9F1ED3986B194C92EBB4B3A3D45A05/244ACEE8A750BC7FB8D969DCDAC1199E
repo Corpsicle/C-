@@ -1,0 +1,125 @@
+﻿using System;
+using System.Linq;
+using System.Windows.Forms;
+
+namespace PupilManagerApp
+{
+    public class PupilForm : Form
+    {
+        private TextBox txtName;
+        private NumericUpDown numAge;
+        private TextBox txtSex;
+        private TextBox txtAddress;
+        private TextBox txtParents;
+        private TextBox txtSubjects;
+        private TextBox txtExamSubject;
+        private TextBox txtExamGrade;
+        private DateTimePicker dtExamDate;
+
+        public Pupil? Pupil { get; private set; }
+
+        public PupilForm()
+        {
+            InitializeComponents();
+            Pupil = new Pupil();
+        }
+
+        public PupilForm(Pupil pupil) : this()
+        {
+            Pupil = pupil;
+            txtName.Text = pupil.Name;
+            numAge.Value = Math.Min(Math.Max(pupil.Age, 0), 120);
+            txtSex.Text = pupil.Sex;
+            txtAddress.Text = pupil.Address;
+            txtParents.Text = pupil.ParentsNames;
+            txtSubjects.Text = string.Join(";", pupil.Subjects);
+        }
+
+        private void InitializeComponents()
+        {
+            Text = "Pupil";
+            Width = 500;
+            Height = 400;
+
+            var lblName = new Label { Text = "Name", Left = 10, Top = 10 };
+            txtName = new TextBox { Left = 100, Top = 10, Width = 350 };
+
+            var lblAge = new Label { Text = "Age", Left = 10, Top = 40 };
+            numAge = new NumericUpDown { Left = 100, Top = 40, Width = 80, Minimum = 0, Maximum = 120 };
+
+            var lblSex = new Label { Text = "Sex", Left = 200, Top = 40 };
+            txtSex = new TextBox { Left = 240, Top = 40, Width = 80 };
+
+            var lblAddress = new Label { Text = "Address", Left = 10, Top = 70 };
+            txtAddress = new TextBox { Left = 100, Top = 70, Width = 350 };
+
+            var lblParents = new Label { Text = "Parents", Left = 10, Top = 100 };
+            txtParents = new TextBox { Left = 100, Top = 100, Width = 350 };
+
+            var lblSubjects = new Label { Text = "Subjects (sep ;)", Left = 10, Top = 130 };
+            txtSubjects = new TextBox { Left = 100, Top = 130, Width = 350 };
+
+            var lblExam = new Label { Text = "Add Exam", Left = 10, Top = 170 };
+            txtExamSubject = new TextBox { Left = 100, Top = 170, Width = 150, PlaceholderText = "Subject" };
+            txtExamGrade = new TextBox { Left = 260, Top = 170, Width = 80, PlaceholderText = "Grade" };
+            dtExamDate = new DateTimePicker { Left = 350, Top = 170, Width = 130 };
+
+            var btnAddExam = new Button { Text = "Add Exam", Left = 100, Top = 200, Width = 100 };
+            var btnRemoveExam = new Button { Text = "Clear Exams", Left = 210, Top = 200, Width = 100 };
+
+            var lblExamsList = new Label { Text = "Exams (Subject - Grade - Date)", Left = 10, Top = 240 };
+            var lstExams = new ListBox { Left = 10, Top = 260, Width = 460, Height = 60 };
+
+            btnAddExam.Click += (s, e) =>
+            {
+                var subj = txtExamSubject.Text.Trim();
+                var grade = txtExamGrade.Text.Trim();
+                var date = dtExamDate.Value;
+                if (!string.IsNullOrEmpty(subj) && !string.IsNullOrEmpty(grade))
+                {
+                    lstExams.Items.Add($"{subj} - {grade} - {date:yyyy-MM-dd}");
+                }
+            };
+            btnRemoveExam.Click += (s, e) => lstExams.Items.Clear();
+
+            var btnOk = new Button { Text = "OK", Left = 290, Top = 330, Width = 80 };
+            var btnCancel = new Button { Text = "Cancel", Left = 380, Top = 330, Width = 80 };
+            btnOk.Click += (s, e) =>
+            {
+                if (Pupil == null) Pupil = new Pupil();
+                Pupil.Name = txtName.Text.Trim();
+                Pupil.Age = (int)numAge.Value;
+                Pupil.Sex = txtSex.Text.Trim();
+                Pupil.Address = txtAddress.Text.Trim();
+                Pupil.ParentsNames = txtParents.Text.Trim();
+                Pupil.Subjects = txtSubjects.Text.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries).Select(x => x.Trim()).ToList();
+                Pupil.ExamResults.Clear();
+                foreach (var it in lstExams.Items)
+                {
+                    var s = it.ToString();
+                    if (s == null) continue;
+                    var parts = s.Split('-');
+                    if (parts.Length >= 3)
+                    {
+                        var subject = parts[0].Trim();
+                        var grade = parts[1].Trim();
+                        var dateStr = parts[2].Trim();
+                        if (DateTime.TryParse(dateStr, out var dt))
+                        {
+                            Pupil.ExamResults.Add(new ExamResult { Subject = subject, Grade = grade, Date = dt });
+                        }
+                        else
+                        {
+                            Pupil.ExamResults.Add(new ExamResult { Subject = subject, Grade = grade });
+                        }
+                    }
+                }
+                DialogResult = DialogResult.OK;
+                Close();
+            };
+            btnCancel.Click += (s, e) => { DialogResult = DialogResult.Cancel; Close(); };
+
+            Controls.AddRange(new Control[] { lblName, txtName, lblAge, numAge, lblSex, txtSex, lblAddress, txtAddress, lblParents, txtParents, lblSubjects, txtSubjects, lblExam, txtExamSubject, txtExamGrade, dtExamDate, btnAddExam, btnRemoveExam, lblExamsList, lstExams, btnOk, btnCancel });
+        }
+    }
+}

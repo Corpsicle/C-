@@ -1,0 +1,107 @@
+﻿
+using System;
+using System.Drawing;
+using System.Drawing.Drawing2D;
+using System.Windows.Forms;
+
+namespace BriansThemeCS
+{
+    public class Form1 : Form
+    {
+        private System.Windows.Forms.Timer timer;
+        private int frame;
+        private readonly Color[] palette;
+        private Pen[] pens;
+
+        public Form1()
+        {
+            Text = "Brian's Theme – C# Retro Demo";
+            BackColor = Color.Black;
+            DoubleBuffered = true;
+            WindowState = FormWindowState.Normal;
+
+            // Retro colour cycle (kept as instance data to avoid reallocation each frame)
+            palette = new[]
+            {
+                Color.Cyan,
+                Color.Magenta,
+                Color.Yellow,
+                Color.Lime,
+                Color.Orange,
+                Color.DeepSkyBlue,
+                Color.Red
+            };
+
+            // Pre-create pens to reduce per-frame allocations
+            pens = new Pen[palette.Length];
+            for (int i = 0; i < palette.Length; i++)
+                pens[i] = new Pen(palette[i], 1f);
+
+            timer = new System.Windows.Forms.Timer();
+            timer.Interval = 30;     // animation speed
+            timer.Tick += (s, e) =>
+            {
+                frame++;
+                Invalidate();
+            };
+            timer.Start();
+
+            Paint += DrawFrame;
+        }
+
+        private void DrawFrame(object sender, PaintEventArgs e)
+        {
+            Graphics g = e.Graphics;
+            g.Clear(Color.Black);
+
+            int w = ClientSize.Width;
+            int h = ClientSize.Height;
+
+            Point center = new Point(w / 2, h / 2);
+
+            // Enable smoother output
+            g.SmoothingMode = SmoothingMode.AntiAlias;
+
+            int lines = 180;
+
+            // Scale pen width with window size to keep appearance consistent
+            float penWidth = Math.Max(1f, Math.Min(w, h) / 300f);
+            for (int i = 0; i < pens.Length; i++)
+                if (pens[i] != null)
+                    pens[i].Width = penWidth;
+
+            for (int i = 0; i < lines; i++)
+            {
+                double t = (i * 0.03) + (frame * 0.02);
+
+                // Sweep points along edges
+                int xTop = (int)(w * (0.5 + 0.5 * Math.Sin(t)));
+                int xBottom = (int)(w * (0.5 + 0.5 * Math.Cos(t)));
+
+                int yLeft = (int)(h * (0.5 + 0.5 * Math.Sin(t + 1.2)));
+                int yRight = (int)(h * (0.5 + 0.5 * Math.Cos(t + 1.2)));
+
+                Pen p = pens[i % pens.Length];
+                if (p != null)
+                {
+                    g.DrawLine(p, new Point(xTop, 0), center);
+                    g.DrawLine(p, new Point(xBottom, h), center);
+                    g.DrawLine(p, new Point(0, yLeft), center);
+                    g.DrawLine(p, new Point(w, yRight), center);
+                }
+            }
+
+
+            // Optional: classic corner sweep using a shared pen
+            using (var cornerPen = new Pen(Color.DarkGray, penWidth))
+            {
+                for (int i = 0; i < 120; i++)
+                {
+                    float t = i / 120f;
+                    g.DrawLine(cornerPen, new Point((int)(w * t), 0), new Point(w, (int)(h * t)));
+                    g.DrawLine(cornerPen, new Point((int)(w * (1 - t)), h), new Point(0, (int)(h * (1 - t))));
+                }
+            }
+        }
+    }
+}

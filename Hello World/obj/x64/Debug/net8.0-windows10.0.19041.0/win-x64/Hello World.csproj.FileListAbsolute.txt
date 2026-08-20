@@ -225,7 +225,6 @@ C:\Users\alanb\source\repos\C#\Hello World\bin\x64\Debug\net8.0-windows10.0.1904
 C:\Users\alanb\source\repos\C#\Hello World\bin\x64\Debug\net8.0-windows10.0.19041.0\win-x64\hostfxr.dll
 C:\Users\alanb\source\repos\C#\Hello World\bin\x64\Debug\net8.0-windows10.0.19041.0\win-x64\hostpolicy.dll
 C:\Users\alanb\source\repos\C#\Hello World\bin\x64\Debug\net8.0-windows10.0.19041.0\win-x64\mscordaccore.dll
-C:\Users\alanb\source\repos\C#\Hello World\bin\x64\Debug\net8.0-windows10.0.19041.0\win-x64\mscordaccore_amd64_amd64_8.0.2726.22922.dll
 C:\Users\alanb\source\repos\C#\Hello World\bin\x64\Debug\net8.0-windows10.0.19041.0\win-x64\mscordbi.dll
 C:\Users\alanb\source\repos\C#\Hello World\bin\x64\Debug\net8.0-windows10.0.19041.0\win-x64\mscorrc.dll
 C:\Users\alanb\source\repos\C#\Hello World\bin\x64\Debug\net8.0-windows10.0.19041.0\win-x64\msquic.dll
@@ -266,3 +265,4 @@ C:\Users\alanb\source\repos\C#\Hello World\obj\x64\Debug\net8.0-windows10.0.1904
 C:\Users\alanb\source\repos\C#\Hello World\obj\x64\Debug\net8.0-windows10.0.19041.0\win-x64\MultipleQualifiersPerDimensionFound.txt
 C:\Users\alanb\source\repos\C#\Hello World\obj\x64\Debug\net8.0-windows10.0.19041.0\win-x64\ProjectArchitectures.txt
 C:\Users\alanb\source\repos\C#\Hello World\obj\x64\Debug\net8.0-windows10.0.19041.0\win-x64\.winmd_cache\$Microsoft.Web.WebView2.Core.winmd_639039823460000000.json
+C:\Users\alanb\source\repos\C#\Hello World\bin\x64\Debug\net8.0-windows10.0.19041.0\win-x64\mscordaccore_amd64_amd64_8.0.2926.32403.dll

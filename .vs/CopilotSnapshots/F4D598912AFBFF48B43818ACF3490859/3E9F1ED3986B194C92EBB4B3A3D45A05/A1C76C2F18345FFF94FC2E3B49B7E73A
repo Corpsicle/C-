@@ -1,0 +1,18 @@
+﻿using System;
+using System.IO;
+using System.Windows.Forms;
+
+namespace PupilManagerApp
+{
+    internal static class Program
+    {
+        [STAThread]
+        static void Main()
+        {
+            ApplicationConfiguration.Initialize();
+            var dataPath = Path.Combine(AppContext.BaseDirectory, "pupils.json");
+            var repo = new PupilRepository(dataPath);
+            Application.Run(new MainForm(repo));
+        }
+    }
+}

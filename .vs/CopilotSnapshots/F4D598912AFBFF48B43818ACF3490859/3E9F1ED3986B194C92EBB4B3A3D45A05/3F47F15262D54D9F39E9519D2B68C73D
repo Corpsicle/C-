@@ -1,0 +1,177 @@
+﻿using System;
+using System.Linq;
+using System.Windows.Forms;
+
+namespace PupilManagerApp
+{
+    public class MainForm : Form
+    {
+        private readonly PupilRepository _repo;
+        private DataGridView _grid;
+        private TextBox _searchBox;
+
+        public MainForm(PupilRepository repo)
+        {
+            _repo = repo;
+            Text = Localizer.Get("AppTitle");
+            Width = 800;
+            Height = 600;
+            StartPosition = FormStartPosition.CenterScreen;
+            InitializeComponents();
+            RefreshGrid();
+        }
+
+        private void InitializeComponents()
+        {
+            _searchBox = new TextBox { Left = 10, Top = 10, Width = 400 };
+            var btnSearch = new Button { Text = Localizer.Get("Search"), Left = 420, Top = 8, Width = 80 };
+            btnSearch.Click += (s, e) => RefreshGrid();
+
+            var btnAdd = new Button { Text = Localizer.Get("Add"), Left = 510, Top = 8, Width = 60 };
+            btnAdd.Click += BtnAdd_Click;
+            var btnEdit = new Button { Text = Localizer.Get("Edit"), Left = 580, Top = 8, Width = 60 };
+            btnEdit.Click += BtnEdit_Click;
+            var btnDelete = new Button { Text = Localizer.Get("Delete"), Left = 650, Top = 8, Width = 60 };
+            btnDelete.Click += BtnDelete_Click;
+
+            var btnImport = new Button { Text = Localizer.Get("ImportCSV"), Left = 10, Top = 40, Width = 100 };
+            btnImport.Click += BtnImport_Click;
+            var btnExport = new Button { Text = Localizer.Get("ExportCSV"), Left = 120, Top = 40, Width = 100 };
+            btnExport.Click += BtnExport_Click;
+            var btnSave = new Button { Text = Localizer.Get("Save"), Left = 230, Top = 40, Width = 80 };
+            btnSave.Click += (s, e) => { _repo.Save(); MessageBox.Show(this, Localizer.Get("Saved"), Localizer.Get("Info"), MessageBoxButtons.OK, MessageBoxIcon.Information); };
+
+            _grid = new DataGridView { Left = 10, Top = 80, Width = 760, Height = 470, ReadOnly = true, AutoGenerateColumns = false, AllowUserToAddRows = false };
+            _grid.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
+            // hidden id column for selection mapping
+            _grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Id", DataPropertyName = "Id", Visible = false });
+            _grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = Localizer.Get("Name"), DataPropertyName = "Name", Width = 200 });
+            _grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Age", DataPropertyName = "Age", Width = 50 });
+            _grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Sex", DataPropertyName = "Sex", Width = 50 });
+            _grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = Localizer.Get("Address"), DataPropertyName = "Address", Width = 250 });
+            _grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = Localizer.Get("Subjects"), DataPropertyName = "SubjectsDisplay", Width = 200 });
+
+            // language selector
+            var cmbLang = new ComboBox { Left = 720, Top = 10, Width = 50, DropDownStyle = ComboBoxStyle.DropDownList };
+            cmbLang.Items.AddRange(new object[] { "en", "es" });
+            cmbLang.SelectedItem = System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName;
+            cmbLang.SelectedIndexChanged += (s, e) => { Localizer.SetCulture(new System.Globalization.CultureInfo(cmbLang.SelectedItem.ToString())); UpdateUiTexts(); };
+
+            Controls.Add(_searchBox);
+            Controls.Add(btnSearch);
+            Controls.Add(btnAdd);
+            Controls.Add(btnEdit);
+            Controls.Add(btnDelete);
+            Controls.Add(btnImport);
+            Controls.Add(btnExport);
+            Controls.Add(btnSave);
+            Controls.Add(cmbLang);
+            Controls.Add(_grid);
+        }
+
+        private void RefreshGrid()
+        {
+            var q = _searchBox.Text;
+            var list = _repo.Search(q).Select(p => new
+            {
+                p.Id,
+                p.Name,
+                p.Age,
+                p.Sex,
+                p.Address,
+                SubjectsDisplay = string.Join(", ", p.Subjects)
+            }).ToList();
+            _grid.DataSource = list;
+        }
+
+        private Pupil? GetSelectedPupil()
+        {
+            if (_grid.CurrentRow == null) return null;
+            var id = _grid.CurrentRow.Cells[0].Value?.ToString();
+            if (id == null) return null;
+            return _repo.Pupils.FirstOrDefault(p => p.Id == id);
+        }
+
+        private void UpdateUiTexts()
+        {
+            Text = Localizer.Get("AppTitle");
+            // update column headers
+            if (_grid.Columns.Count >= 5)
+            {
+                _grid.Columns[1].HeaderText = Localizer.Get("Name");
+                _grid.Columns[2].HeaderText = Localizer.Get("Age");
+                _grid.Columns[3].HeaderText = Localizer.Get("Sex");
+                _grid.Columns[4].HeaderText = Localizer.Get("Address");
+                _grid.Columns[5].HeaderText = Localizer.Get("Subjects");
+            }
+        }
+
+        private void BtnAdd_Click(object? sender, EventArgs e)
+        {
+            var form = new PupilForm();
+            if (form.ShowDialog(this) == DialogResult.OK)
+            {
+                _repo.Pupils.Add(form.Pupil!);
+                RefreshGrid();
+            }
+        }
+
+        private void BtnEdit_Click(object? sender, EventArgs e)
+        {
+            var pupil = GetSelectedPupil();
+            if (pupil == null) { MessageBox.Show(this, Localizer.Get("SelectPupilFirst"), Localizer.Get("Info"), MessageBoxButtons.OK, MessageBoxIcon.Information); return; }
+            var form = new PupilForm(pupil);
+            if (form.ShowDialog(this) == DialogResult.OK)
+            {
+                RefreshGrid();
+            }
+        }
+
+        private void BtnDelete_Click(object? sender, EventArgs e)
+        {
+            var pupil = GetSelectedPupil();
+            if (pupil == null) { MessageBox.Show(this, Localizer.Get("SelectPupilFirst"), Localizer.Get("Info"), MessageBoxButtons.OK, MessageBoxIcon.Information); return; }
+            if (MessageBox.Show(this, Localizer.Get("DeleteSelectedPupil"), Localizer.Get("Confirm"), MessageBoxButtons.YesNo) == DialogResult.Yes)
+            {
+                _repo.Pupils.Remove(pupil);
+                RefreshGrid();
+            }
+        }
+
+        private void BtnImport_Click(object? sender, EventArgs e)
+        {
+            using var dlg = new OpenFileDialog { Filter = "CSV files|*.csv|All files|*.*" };
+            if (dlg.ShowDialog(this) == DialogResult.OK)
+            {
+                try
+                {
+                    _repo.ImportCsv(dlg.FileName);
+                    RefreshGrid();
+                    MessageBox.Show(this, Localizer.Get("ImportFinished"), Localizer.Get("Info"), MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(this, ex.Message, Localizer.Get("Error"), MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+        }
+
+        private void BtnExport_Click(object? sender, EventArgs e)
+        {
+            using var dlg = new SaveFileDialog { Filter = "CSV files|*.csv|All files|*.*", FileName = "pupils.csv" };
+            if (dlg.ShowDialog(this) == DialogResult.OK)
+            {
+                try
+                {
+                    _repo.ExportCsv(dlg.FileName);
+                    MessageBox.Show(this, Localizer.Get("ExportFinished"), Localizer.Get("Info"), MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(this, ex.Message, Localizer.Get("Error"), MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+        }
+    }
+}
+can you please modify 

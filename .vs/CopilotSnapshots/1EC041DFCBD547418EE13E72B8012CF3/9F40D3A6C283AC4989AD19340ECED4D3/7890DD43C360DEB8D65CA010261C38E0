@@ -1,0 +1,142 @@
+﻿using System;
+using System.Drawing;
+using System.ComponentModel;
+using System.Windows.Forms;
+
+namespace Brian_s_Theme;
+
+public class SettingsForm : Form
+{
+    [Browsable(false)]
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+    public int SegmentDelayMs { get; set; }
+
+    [Browsable(false)]
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+    public int PostPatternPauseMs { get; set; }
+
+    [Browsable(false)]
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+    public bool FollowSystemTheme { get; set; }
+
+    [Browsable(false)]
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+    public Color LightBg { get; set; }
+
+    [Browsable(false)]
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+    public Color LightFg { get; set; }
+
+    [Browsable(false)]
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+    public Color DarkBg { get; set; }
+
+    [Browsable(false)]
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+    public Color DarkFg { get; set; }
+
+    [Browsable(false)]
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+    public bool IsLightTheme { get; set; }
+
+    private NumericUpDown _nudSegment;
+    private NumericUpDown _nudPost;
+    private CheckBox _cbFollow;
+    private RadioButton _rbLight;
+    private RadioButton _rbDark;
+    private Button _btnLightBg;
+    private Button _btnLightFg;
+    private Button _btnDarkBg;
+    private Button _btnDarkFg;
+
+    public SettingsForm()
+    {
+        Text = "Settings";
+        Width = 420;
+        Height = 340;
+        FormBorderStyle = FormBorderStyle.FixedDialog;
+        MaximizeBox = false;
+        MinimizeBox = false;
+
+        var lblSeg = new Label { Text = "Segment delay (ms)", Left = 12, Top = 12, Width = 160 };
+        _nudSegment = new NumericUpDown { Left = 180, Top = 8, Width = 80, Minimum = 0, Maximum = 1000 };
+
+        var lblPost = new Label { Text = "Post-pattern pause (ms)", Left = 12, Top = 44, Width = 160 };
+        _nudPost = new NumericUpDown { Left = 180, Top = 40, Width = 80, Minimum = 0, Maximum = 5000 };
+
+        _cbFollow = new CheckBox { Text = "Follow system theme", Left = 12, Top = 80, Width = 200 };
+
+        _rbLight = new RadioButton { Text = "Use Light theme", Left = 12, Top = 110, Width = 120 };
+        _rbDark = new RadioButton { Text = "Use Dark theme", Left = 140, Top = 110, Width = 120 };
+
+        _btnLightBg = new Button { Text = "Light BG...", Left = 12, Top = 150, Width = 100 };
+        _btnLightFg = new Button { Text = "Light FG...", Left = 120, Top = 150, Width = 100 };
+        _btnDarkBg = new Button { Text = "Dark BG...", Left = 12, Top = 190, Width = 100 };
+        _btnDarkFg = new Button { Text = "Dark FG...", Left = 120, Top = 190, Width = 100 };
+
+        var btnOk = new Button { Text = "OK", DialogResult = DialogResult.OK, Left = 220, Top = 250, Width = 80 };
+        var btnCancel = new Button { Text = "Cancel", DialogResult = DialogResult.Cancel, Left = 310, Top = 250, Width = 80 };
+
+        Controls.AddRange(new Control[] { lblSeg, _nudSegment, lblPost, _nudPost, _cbFollow, _rbLight, _rbDark, _btnLightBg, _btnLightFg, _btnDarkBg, _btnDarkFg, btnOk, btnCancel });
+
+        _btnLightBg.Click += (s, e) => PickColor(ref _lightBgTemp, _btnLightBg);
+        _btnLightFg.Click += (s, e) => PickColor(ref _lightFgTemp, _btnLightFg);
+        _btnDarkBg.Click += (s, e) => PickColor(ref _darkBgTemp, _btnDarkBg);
+        _btnDarkFg.Click += (s, e) => PickColor(ref _darkFgTemp, _btnDarkFg);
+
+        btnOk.Click += BtnOk_Click;
+        Load += SettingsForm_Load;
+    }
+
+    private Color _lightBgTemp;
+    private Color _lightFgTemp;
+    private Color _darkBgTemp;
+    private Color _darkFgTemp;
+
+    private void SettingsForm_Load(object? sender, EventArgs e)
+    {
+        _nudSegment.Value = SegmentDelayMs;
+        _nudPost.Value = PostPatternPauseMs;
+        _cbFollow.Checked = FollowSystemTheme;
+        _rbLight.Checked = IsLightTheme;
+        _rbDark.Checked = !IsLightTheme;
+
+        _lightBgTemp = LightBg;
+        _lightFgTemp = LightFg;
+        _darkBgTemp = DarkBg;
+        _darkFgTemp = DarkFg;
+
+        UpdateButtonColors();
+    }
+
+    private void UpdateButtonColors()
+    {
+        _btnLightBg.BackColor = _lightBgTemp;
+        _btnLightFg.BackColor = _lightFgTemp;
+        _btnDarkBg.BackColor = _darkBgTemp;
+        _btnDarkFg.BackColor = _darkFgTemp;
+    }
+
+    private void PickColor(ref Color target, Button button)
+    {
+        using var dlg = new ColorDialog { Color = target };
+        if (dlg.ShowDialog(this) == DialogResult.OK)
+        {
+            target = dlg.Color;
+            UpdateButtonColors();
+        }
+    }
+
+    private void BtnOk_Click(object? sender, EventArgs e)
+    {
+        SegmentDelayMs = (int)_nudSegment.Value;
+        PostPatternPauseMs = (int)_nudPost.Value;
+        FollowSystemTheme = _cbFollow.Checked;
+        IsLightTheme = _rbLight.Checked;
+
+        LightBg = _lightBgTemp;
+        LightFg = _lightFgTemp;
+        DarkBg = _darkBgTemp;
+        DarkFg = _darkFgTemp;
+    }
+}

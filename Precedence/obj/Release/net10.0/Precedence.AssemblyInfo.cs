@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Precedence")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+8c7d1ac90157bf5b3ec25adee9fd5ccb3bcefb42")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+67fba08eaf198a006da1e9bcde4dbdcb4ff4dfef")]
 [assembly: System.Reflection.AssemblyProductAttribute("Precedence")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Precedence")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
