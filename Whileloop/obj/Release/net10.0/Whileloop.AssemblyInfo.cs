@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Whileloop")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+67fba08eaf198a006da1e9bcde4dbdcb4ff4dfef")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+8f7b8de5c9caf9dbbab38362d55d86e674ff0529")]
 [assembly: System.Reflection.AssemblyProductAttribute("Whileloop")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Whileloop")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

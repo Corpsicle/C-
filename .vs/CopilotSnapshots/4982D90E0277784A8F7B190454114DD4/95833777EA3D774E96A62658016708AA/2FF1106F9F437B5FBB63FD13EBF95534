@@ -1,0 +1,565 @@
+﻿using System;
+using System.Drawing;
+using System.Threading;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+using Microsoft.Win32;
+using System.IO;
+using System.Text.Json;
+
+namespace Brian_s_Theme;
+
+public partial class Form1 : Form
+{
+    private readonly Random _rnd = new();
+    private volatile bool _running;
+    private CancellationTokenSource? _cts;
+    private Task? _animationTask;
+    private Bitmap? _bitmap;
+    private readonly object _bitmapLock = new();
+    private bool _showTitle = true;
+    private bool _isLightTheme = true;
+    private Label? _statusLabel;
+    private MenuStrip? _menuStrip;
+    private int _segmentDelayMs = 12;
+    private int _postPatternPauseMs = 1600;
+    private bool _followSystemTheme = true;
+    private Color _lightBg = Color.White;
+    private Color _lightFg = Color.Black;
+    private Color _darkBg = Color.Black;
+    private Color _darkFg = Color.White;
+    private Color _bgColor = Color.Black;
+    private Color _fgColor = Color.White;
+
+    public Form1()
+    {
+        InitializeComponent();
+        AutoScaleMode = AutoScaleMode.Dpi;
+        Text = "Brian's Theme";
+        DoubleBuffered = true;
+        KeyPreview = true;
+        Load += Form1_Load;
+        KeyDown += Form1_KeyDown;
+        FormClosing += Form1_FormClosing;
+        // status label at bottom showing step size and instructions
+        _statusLabel = new Label
+        {
+            Dock = DockStyle.Bottom,
+            Height = 90,
+            TextAlign = ContentAlignment.MiddleCenter,
+            BackColor = SystemColors.Control,
+            ForeColor = Color.Black,
+        };
+        Controls.Add(_statusLabel);
+        // main menu (Settings, Help)
+        _menuStrip = new MenuStrip { Dock = DockStyle.Top };
+        var settingsMenu = new ToolStripMenuItem("Settings");
+        var prefsItem = new ToolStripMenuItem("Preferences...", null, PreferencesMenu_Click);
+        var exitItem = new ToolStripMenuItem("Exit", null, ExitMenu_Click);
+        settingsMenu.DropDownItems.Add(prefsItem);
+        settingsMenu.DropDownItems.Add(exitItem);
+
+        var helpMenu = new ToolStripMenuItem("Help");
+        var aboutItem = new ToolStripMenuItem("About", null, AboutMenu_Click);
+        helpMenu.DropDownItems.Add(aboutItem);
+
+        _menuStrip.Items.Add(settingsMenu);
+        _menuStrip.Items.Add(helpMenu);
+        Controls.Add(_menuStrip);
+        // load persisted settings (if any) and listen for system theme changes
+        try
+        {
+            LoadSettings();
+            if (_followSystemTheme)
+                ApplyTheme(GetIsLightTheme());
+            else
+                ApplyTheme(_isLightTheme);
+
+            SystemEvents.UserPreferenceChanged += SystemEvents_UserPreferenceChanged;
+        }
+
+        catch { }
+    }
+
+    // Settings persistence
+    private string GetSettingsFilePath()
+    {
+        // Application.UserAppDataPath already creates a per-user folder; ensure directory exists
+        var dir = Application.UserAppDataPath;
+        try { Directory.CreateDirectory(dir); } catch { }
+        return Path.Combine(dir, "settings.json");
+    }
+
+    private void SaveSettings()
+    {
+        try
+        {
+            var dto = new AppSettings
+            {
+                SegmentDelayMs = _segmentDelayMs,
+                PostPatternPauseMs = _postPatternPauseMs,
+                FollowSystemTheme = _followSystemTheme,
+                LightBgArgb = _lightBg.ToArgb(),
+                LightFgArgb = _lightFg.ToArgb(),
+                DarkBgArgb = _darkBg.ToArgb(),
+                DarkFgArgb = _darkFg.ToArgb(),
+                IsLightTheme = _isLightTheme
+            };
+
+            var opts = new JsonSerializerOptions { WriteIndented = true };
+            var json = JsonSerializer.Serialize(dto, opts);
+            File.WriteAllText(GetSettingsFilePath(), json);
+        }
+        catch { }
+    }
+
+    private void LoadSettings()
+    {
+        try
+        {
+            var path = GetSettingsFilePath();
+            if (!File.Exists(path)) return;
+            var json = File.ReadAllText(path);
+            var dto = JsonSerializer.Deserialize<AppSettings>(json);
+            if (dto == null) return;
+
+            _segmentDelayMs = dto.SegmentDelayMs;
+            _postPatternPauseMs = dto.PostPatternPauseMs;
+            _followSystemTheme = dto.FollowSystemTheme;
+            _lightBg = Color.FromArgb(dto.LightBgArgb);
+            _lightFg = Color.FromArgb(dto.LightFgArgb);
+            _darkBg = Color.FromArgb(dto.DarkBgArgb);
+            _darkFg = Color.FromArgb(dto.DarkFgArgb);
+            _isLightTheme = dto.IsLightTheme;
+        }
+        catch { }
+    }
+
+    private class AppSettings
+    {
+        public int SegmentDelayMs { get; set; }
+        public int PostPatternPauseMs { get; set; }
+        public bool FollowSystemTheme { get; set; }
+        public int LightBgArgb { get; set; }
+        public int LightFgArgb { get; set; }
+        public int DarkBgArgb { get; set; }
+        public int DarkFgArgb { get; set; }
+        public bool IsLightTheme { get; set; }
+    }
+
+    private void PreferencesMenu_Click(object? sender, EventArgs e)
+    {
+        using var dlg = new SettingsForm
+        {
+            SegmentDelayMs = _segmentDelayMs,
+            PostPatternPauseMs = _postPatternPauseMs,
+            FollowSystemTheme = _followSystemTheme,
+            LightBg = _lightBg,
+            LightFg = _lightFg,
+            DarkBg = _darkBg,
+            DarkFg = _darkFg,
+            IsLightTheme = _isLightTheme,
+            StartPosition = FormStartPosition.CenterParent,
+        };
+
+        if (dlg.ShowDialog(this) == DialogResult.OK)
+        {
+            _segmentDelayMs = dlg.SegmentDelayMs;
+            _postPatternPauseMs = dlg.PostPatternPauseMs;
+            _followSystemTheme = dlg.FollowSystemTheme;
+            _lightBg = dlg.LightBg;
+            _lightFg = dlg.LightFg;
+            _darkBg = dlg.DarkBg;
+            _darkFg = dlg.DarkFg;
+            _isLightTheme = dlg.IsLightTheme;
+
+            // apply the chosen theme (respect follow flag)
+            if (_followSystemTheme)
+                ApplyTheme(GetIsLightTheme());
+            else
+                ApplyTheme(_isLightTheme);
+
+            // persist settings
+            try { SaveSettings(); } catch { }
+        }
+    }
+
+    private Rectangle GetDrawingRect()
+    {
+        var top = _menuStrip?.Height ?? 0;
+        var bottom = _statusLabel?.Height ?? 0;
+        int w = Math.Max(1, ClientSize.Width);
+        int h = Math.Max(1, ClientSize.Height - top - bottom);
+        return new Rectangle(0, top, w, h);
+    }
+
+    private void AboutMenu_Click(object? sender, EventArgs e)
+    {
+        MessageBox.Show(this, "Brian's Theme\n\nA small demo application.\n\nAuthor: Brian Howard\nVersion: 1.1\nWindowed in C#\nBy Alan Burr (c)2026", "About", MessageBoxButtons.OK, MessageBoxIcon.Information);
+    }
+
+    private void ExitMenu_Click(object? sender, EventArgs e)
+    {
+        Close();
+    }
+
+
+
+    private bool GetIsLightTheme()
+    {
+        try
+        {
+            using var key = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize");
+            if (key != null)
+            {
+                var val = key.GetValue("AppsUseLightTheme");
+                if (val is int i) return i != 0;
+                if (val is long l) return l != 0;
+            }
+        }
+        catch { }
+        return true;
+    }
+
+    private void ApplyTheme(bool isLight)
+    {
+        _isLightTheme = isLight;
+        // choose colors from configured palettes
+        if (_isLightTheme)
+        {
+            _bgColor = _lightBg;
+            _fgColor = _lightFg;
+        }
+        else
+        {
+            _bgColor = _darkBg;
+            _fgColor = _darkFg;
+        }
+
+        if (_statusLabel != null)
+        {
+            _statusLabel.BackColor = _isLightTheme ? SystemColors.Control : Color.FromArgb(30, 30, 30);
+            _statusLabel.ForeColor = _fgColor;
+        }
+
+        Invalidate();
+    }
+
+    private void SystemEvents_UserPreferenceChanged(object? sender, UserPreferenceChangedEventArgs e)
+    {
+        try
+        {
+            if (_followSystemTheme)
+                ApplyTheme(GetIsLightTheme());
+        }
+        catch { }
+    }
+
+    private void Form1_Load(object? sender, EventArgs e)
+    {
+        // initial paint
+        Invalidate();
+        if (_statusLabel != null)
+            _statusLabel.Text = "Press Enter to continue...";
+    }
+
+    private void Form1_FormClosing(object? sender, FormClosingEventArgs e)
+    {
+        StopAnimation();
+        try { SaveSettings(); } catch { }
+        try { SystemEvents.UserPreferenceChanged -= SystemEvents_UserPreferenceChanged; } catch { }
+    }
+
+    private void Form1_KeyDown(object? sender, KeyEventArgs e)
+    {
+        if (_showTitle && e.KeyCode == Keys.Enter)
+        {
+            _showTitle = false;
+            StartAnimation();
+            if (_statusLabel != null)
+                _statusLabel.Text = "Starting...";
+            e.Handled = true;
+            return;
+        }
+
+        // During animation, allow Escape to stop and return to title
+        if (!_showTitle && e.KeyCode == Keys.Escape)
+        {
+            StopAnimation();
+            _showTitle = true;
+            Invalidate();
+            if (_statusLabel != null)
+                _statusLabel.Text = "Press Enter to continue...";
+            e.Handled = true;
+            return;
+        }
+    }
+
+    protected override void OnPaint(PaintEventArgs e)
+    {
+        base.OnPaint(e);
+
+        var g = e.Graphics;
+        var drawRect = GetDrawingRect();
+
+        // fill only the drawable area (leave menu/status controls alone)
+        using (var bgBrush = new SolidBrush(_bgColor))
+            g.FillRectangle(bgBrush, drawRect);
+
+        if (_showTitle)
+        {
+            DrawTitle(g, drawRect);
+            return;
+        }
+
+        lock (_bitmapLock)
+        {
+            if (_bitmap != null)
+            {
+                // draw the shared bitmap into the drawable area
+                g.DrawImage(_bitmap, drawRect);
+            }
+        }
+    }
+
+    private void DrawTitle(Graphics g, Rectangle drawRect)
+    {
+        using var titleFont = new Font("Segoe UI", 24, FontStyle.Bold);
+        using var byFont = new Font("Segoe UI", 14, FontStyle.Regular);
+        using var creditFont = new Font("Segoe UI", 12, FontStyle.Regular);
+
+        var sf = new StringFormat { Alignment = StringAlignment.Center };
+        using var brush = new SolidBrush(_fgColor);
+
+        float w = drawRect.Width;
+        float h = drawRect.Height;
+        float x = drawRect.X;
+        float y = drawRect.Y;
+
+        g.DrawString("BRIAN'S THEME", titleFont, brush, new RectangleF(x, y + h * 0.20f, w, 70), sf);
+        g.DrawString("BY", byFont, brush, new RectangleF(x, y + h * 0.45f, w, 40), sf);
+        g.DrawString("BRIAN HOWARD", creditFont, brush, new RectangleF(x, y + h * 0.52f, w, 40), sf);
+        g.DrawString("COPYRIGHT 1979, APPLE COMPUTER INC.", creditFont, brush, new RectangleF(x, y + h * 0.65f, w, 40), sf);
+        g.DrawString("Windowed in C# By Alan Burr", creditFont, brush, new RectangleF(x, y + h * 0.72f, w, 40), sf);
+        g.DrawString("PRESS ENTER TO CONTINUE...", creditFont, brush, new RectangleF(x, y + h * 0.85f, w, 40), sf);
+    }
+
+    protected override void OnResize(EventArgs e)
+    {
+        base.OnResize(e);
+
+        // Clear and dispose the bitmap so the animation recreates it at the new size.
+        lock (_bitmapLock)
+        {
+            try { _bitmap?.Dispose(); } catch { }
+            _bitmap = null;
+        }
+
+        try { Invalidate(); } catch { }
+
+        // restart animation so it uses the new drawable size immediately
+        try
+        {
+            if (_running)
+            {
+                StopAnimation();
+                StartAnimation();
+            }
+        }
+        catch { }
+    }
+
+    private void StartAnimation()
+    {
+        if (_running) return;
+        _running = true;
+        _cts = new CancellationTokenSource();
+
+        // run async loop without blocking UI thread
+        var token = _cts.Token;
+        // keep a reference to the running task so callers can await its completion
+        _animationTask = Task.Run(async () => await AnimationLoopAsync(token), token);
+    }
+
+    private async Task StopAnimationAsync()
+    {
+        if (!_running) return;
+
+        // signal the loop to stop
+        try { _cts?.Cancel(); } catch { }
+
+        // wait for the background task to finish (it should exit on cancellation)
+        try
+        {
+            if (_animationTask != null)
+                await _animationTask.ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) { }
+        catch { }
+        finally
+        {
+            try { _cts?.Dispose(); } catch { }
+            _cts = null;
+            _animationTask = null;
+            _running = false;
+        }
+    }
+
+    // legacy synchronous wrapper kept for compatibility with existing code paths
+    private void StopAnimation()
+    {
+        // fire-and-forget stopping; callers that need to await should use StopAnimationAsync
+        _ = StopAnimationAsync();
+    }
+
+    private async Task AnimationLoopAsync(CancellationToken token)
+    {
+        try
+        {
+            while (!token.IsCancellationRequested)
+            {
+                var topOffset = _menuStrip?.Height ?? 0;
+                var bottomOffset = _statusLabel?.Height ?? 0;
+
+                int width = Math.Max(1, ClientSize.Width);
+                int height = Math.Max(1, ClientSize.Height - topOffset - bottomOffset);
+
+                float sx = width / 280f;
+                float sy = height / 160f;
+
+                int A = (int)(_rnd.NextDouble() * 279);
+                int B = (int)(_rnd.NextDouble() * 159);
+                int step = _rnd.Next(2, 5);
+
+                if (_statusLabel != null)
+                {
+                    try { BeginInvoke((Action)(() => _statusLabel.Text = $"STEPPING BY {step}\nPRESS 'ESC' TO STOP")); }
+                    catch { }
+                }
+
+                var bmp = new Bitmap(width, height);
+                // capture current delays so user changes apply to next pattern
+                int segmentDelay = _segmentDelayMs;
+                int postPause = _postPatternPauseMs;
+                using (var g = Graphics.FromImage(bmp))
+                {
+                    g.Clear(_bgColor);
+                    g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.None;
+
+                    // publish the bitmap reference once so OnPaint can draw it safely under lock
+                    lock (_bitmapLock)
+                    {
+                        _bitmap?.Dispose();
+                        _bitmap = bmp;
+                    }
+
+                    // draw X-based lines
+
+                for (int x = 0; x <= 278; x += step)
+                    {
+                        for (int s = 0; s <= 1; s++)
+                        {
+                            if (token.IsCancellationRequested) break;
+
+                            var color = s == 0 ? _fgColor : _bgColor;
+                            using var pen = new Pen(color);
+
+                            var x1 = (int)((x + s) * sx);
+                            var y1 = 0;
+                            var cx = (int)(A * sx);
+                            var cy = (int)(B * sy);
+
+                            lock (_bitmapLock)
+                            {
+                                g.DrawLine(pen, x1, y1, cx, cy);
+                            }
+
+                            try { BeginInvoke((Action)Invalidate); } catch { }
+                            await Task.Delay(segmentDelay, token).ConfigureAwait(false);
+
+                            if (token.IsCancellationRequested) break;
+
+                            var x2 = (int)((279 - x - s) * sx);
+                            var y2 = height - 1;
+
+                            lock (_bitmapLock)
+                            {
+                                g.DrawLine(pen, cx, cy, x2, y2);
+                            }
+
+                            try { BeginInvoke((Action)Invalidate); } catch { }
+                            await Task.Delay(segmentDelay, token).ConfigureAwait(false);
+                        }
+                        if (token.IsCancellationRequested) break;
+                    }
+
+                    // draw Y-based lines
+                    for (int y = 0; y <= 158; y += step)
+                    {
+                        for (int s = 0; s <= 1; s++)
+                        {
+                            if (token.IsCancellationRequested) break;
+
+                            var color = s == 0 ? _fgColor : _bgColor;
+                            using var pen = new Pen(color);
+
+                            var x1 = width - 1;
+                            var y1 = (int)((y + s) * sy);
+                            var cx = (int)(A * sx);
+                            var cy = (int)(B * sy);
+
+                            lock (_bitmapLock)
+                            {
+                                g.DrawLine(pen, x1, y1, cx, cy);
+                            }
+
+                            try { BeginInvoke((Action)Invalidate); } catch { }
+                            await Task.Delay(segmentDelay, token).ConfigureAwait(false);
+
+                            if (token.IsCancellationRequested) break;
+
+                            var x2 = 0;
+                            var y2 = (int)((159 - y - s) * sy);
+
+                            lock (_bitmapLock)
+                            {
+                                g.DrawLine(pen, cx, cy, x2, y2);
+                            }
+
+                            try { BeginInvoke((Action)Invalidate); } catch { }
+                            await Task.Delay(segmentDelay, token).ConfigureAwait(false);
+                        }
+                        if (token.IsCancellationRequested) break;
+                    }
+                }
+
+                // short pause after full pattern
+                try { await Task.Delay(postPause, token).ConfigureAwait(false); } catch (OperationCanceledException) { }
+            }
+        }
+        catch (OperationCanceledException) { }
+        finally
+        {
+            _running = false;
+        }
+    }
+
+    private void ReplaceBitmap(Bitmap newBmp)
+    {
+        // invoked from background thread
+        try
+        {
+            Invoke((Action)(() =>
+            {
+                _bitmap?.Dispose();
+                _bitmap = newBmp;
+                Invalidate();
+            }));
+        }
+        catch (ObjectDisposedException)
+        {
+            // form is closing
+            newBmp.Dispose();
+        }
+    }
+}

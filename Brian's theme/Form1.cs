@@ -4,6 +4,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using Microsoft.Win32;
+using System.IO;
+using System.Text.Json;
 
 namespace Brian_s_Theme;
 
@@ -12,12 +14,11 @@ public partial class Form1 : Form
     private readonly Random _rnd = new();
     private volatile bool _running;
     private CancellationTokenSource? _cts;
+    private Task? _animationTask;
     private Bitmap? _bitmap;
     private readonly object _bitmapLock = new();
     private bool _showTitle = true;
     private bool _isLightTheme = true;
-    private Color _bgColor = Color.Black;
-    private Color _fgColor = Color.White;
     private Label? _statusLabel;
     private MenuStrip? _menuStrip;
     private int _segmentDelayMs = 12;
@@ -27,6 +28,8 @@ public partial class Form1 : Form
     private Color _lightFg = Color.Black;
     private Color _darkBg = Color.Black;
     private Color _darkFg = Color.White;
+    private Color _bgColor = Color.Black;
+    private Color _fgColor = Color.White;
 
     public Form1()
     {
@@ -42,7 +45,7 @@ public partial class Form1 : Form
         _statusLabel = new Label
         {
             Dock = DockStyle.Bottom,
-            Height = 30,
+            Height = 90,
             TextAlign = ContentAlignment.MiddleCenter,
             BackColor = SystemColors.Control,
             ForeColor = Color.Black,
@@ -63,13 +66,85 @@ public partial class Form1 : Form
         _menuStrip.Items.Add(settingsMenu);
         _menuStrip.Items.Add(helpMenu);
         Controls.Add(_menuStrip);
-        // apply current system theme and listen for changes
+        // load persisted settings (if any) and listen for system theme changes
         try
         {
-            ApplyTheme(GetIsLightTheme());
+            LoadSettings();
+            if (_followSystemTheme)
+                ApplyTheme(GetIsLightTheme());
+            else
+                ApplyTheme(_isLightTheme);
+
             SystemEvents.UserPreferenceChanged += SystemEvents_UserPreferenceChanged;
         }
+
         catch { }
+    }
+
+    // Settings persistence
+    private string GetSettingsFilePath()
+    {
+        // Application.UserAppDataPath already creates a per-user folder; ensure directory exists
+        var dir = Application.UserAppDataPath;
+        try { Directory.CreateDirectory(dir); } catch { }
+        return Path.Combine(dir, "settings.json");
+    }
+
+    private void SaveSettings()
+    {
+        try
+        {
+            var dto = new AppSettings
+            {
+                SegmentDelayMs = _segmentDelayMs,
+                PostPatternPauseMs = _postPatternPauseMs,
+                FollowSystemTheme = _followSystemTheme,
+                LightBgArgb = _lightBg.ToArgb(),
+                LightFgArgb = _lightFg.ToArgb(),
+                DarkBgArgb = _darkBg.ToArgb(),
+                DarkFgArgb = _darkFg.ToArgb(),
+                IsLightTheme = _isLightTheme
+            };
+
+            var opts = new JsonSerializerOptions { WriteIndented = true };
+            var json = JsonSerializer.Serialize(dto, opts);
+            File.WriteAllText(GetSettingsFilePath(), json);
+        }
+        catch { }
+    }
+
+    private void LoadSettings()
+    {
+        try
+        {
+            var path = GetSettingsFilePath();
+            if (!File.Exists(path)) return;
+            var json = File.ReadAllText(path);
+            var dto = JsonSerializer.Deserialize<AppSettings>(json);
+            if (dto == null) return;
+
+            _segmentDelayMs = dto.SegmentDelayMs;
+            _postPatternPauseMs = dto.PostPatternPauseMs;
+            _followSystemTheme = dto.FollowSystemTheme;
+            _lightBg = Color.FromArgb(dto.LightBgArgb);
+            _lightFg = Color.FromArgb(dto.LightFgArgb);
+            _darkBg = Color.FromArgb(dto.DarkBgArgb);
+            _darkFg = Color.FromArgb(dto.DarkFgArgb);
+            _isLightTheme = dto.IsLightTheme;
+        }
+        catch { }
+    }
+
+    private class AppSettings
+    {
+        public int SegmentDelayMs { get; set; }
+        public int PostPatternPauseMs { get; set; }
+        public bool FollowSystemTheme { get; set; }
+        public int LightBgArgb { get; set; }
+        public int LightFgArgb { get; set; }
+        public int DarkBgArgb { get; set; }
+        public int DarkFgArgb { get; set; }
+        public bool IsLightTheme { get; set; }
     }
 
     private void PreferencesMenu_Click(object? sender, EventArgs e)
@@ -103,12 +178,24 @@ public partial class Form1 : Form
                 ApplyTheme(GetIsLightTheme());
             else
                 ApplyTheme(_isLightTheme);
+
+            // persist settings
+            try { SaveSettings(); } catch { }
         }
+    }
+
+    private Rectangle GetDrawingRect()
+    {
+        var top = _menuStrip?.Height ?? 0;
+        var bottom = _statusLabel?.Height ?? 0;
+        int w = Math.Max(1, ClientSize.Width);
+        int h = Math.Max(1, ClientSize.Height - top - bottom);
+        return new Rectangle(0, top, w, h);
     }
 
     private void AboutMenu_Click(object? sender, EventArgs e)
     {
-        MessageBox.Show(this, "Brian's Theme\n\nA small demo application.\n\nAuthor: Brian Howard\nVersion: 1.0\nWindowed By Alan Burr (c)2026", "About", MessageBoxButtons.OK, MessageBoxIcon.Information);
+        MessageBox.Show(this, "Brian's Theme\n\nA small demo application.\n\nAuthor: Brian Howard\nVersion: 1.1\nWindowed in C#\nBy Alan Burr (c)2026", "About", MessageBoxButtons.OK, MessageBoxIcon.Information);
     }
 
     private void ExitMenu_Click(object? sender, EventArgs e)
@@ -176,13 +263,14 @@ public partial class Form1 : Form
             _statusLabel.Text = "Press Enter to continue...";
     }
 
-    private void Form1_FormClosing(object? sender, FormClosingEventArgs e)
+    private async void Form1_FormClosing(object? sender, FormClosingEventArgs e)
     {
-        StopAnimation();
+        await StopAnimationAsync().ConfigureAwait(false);
+        try { SaveSettings(); } catch { }
         try { SystemEvents.UserPreferenceChanged -= SystemEvents_UserPreferenceChanged; } catch { }
     }
 
-    private void Form1_KeyDown(object? sender, KeyEventArgs e)
+    private async void Form1_KeyDown(object? sender, KeyEventArgs e)
     {
         if (_showTitle && e.KeyCode == Keys.Enter)
         {
@@ -197,9 +285,9 @@ public partial class Form1 : Form
         // During animation, allow Escape to stop and return to title
         if (!_showTitle && e.KeyCode == Keys.Escape)
         {
-            StopAnimation();
+            await StopAnimationAsync().ConfigureAwait(false);
             _showTitle = true;
-            Invalidate();
+            try { Invalidate(); } catch { }
             if (_statusLabel != null)
                 _statusLabel.Text = "Press Enter to continue...";
             e.Handled = true;
@@ -212,11 +300,15 @@ public partial class Form1 : Form
         base.OnPaint(e);
 
         var g = e.Graphics;
-        g.Clear(_bgColor);
+        var drawRect = GetDrawingRect();
+
+        // fill only the drawable area (leave menu/status controls alone)
+        using (var bgBrush = new SolidBrush(_bgColor))
+            g.FillRectangle(bgBrush, drawRect);
 
         if (_showTitle)
         {
-            DrawTitle(g, ClientSize.Width, ClientSize.Height);
+            DrawTitle(g, drawRect);
             return;
         }
 
@@ -224,15 +316,14 @@ public partial class Form1 : Form
         {
             if (_bitmap != null)
             {
-                // draw the shared bitmap
-                g.DrawImage(_bitmap, 0, 0, ClientSize.Width, ClientSize.Height);
+                // draw the shared bitmap into the drawable area
+                g.DrawImage(_bitmap, drawRect);
             }
         }
     }
 
-    private void DrawTitle(Graphics g, int w, int h)
+    private void DrawTitle(Graphics g, Rectangle drawRect)
     {
-        g.Clear(_bgColor);
         using var titleFont = new Font("Segoe UI", 24, FontStyle.Bold);
         using var byFont = new Font("Segoe UI", 14, FontStyle.Regular);
         using var creditFont = new Font("Segoe UI", 12, FontStyle.Regular);
@@ -240,12 +331,43 @@ public partial class Form1 : Form
         var sf = new StringFormat { Alignment = StringAlignment.Center };
         using var brush = new SolidBrush(_fgColor);
 
-        g.DrawString("BRIAN'S THEME", titleFont, brush, new RectangleF(0, h * 0.20f, w, 70), sf);
-        g.DrawString("BY", byFont, brush, new RectangleF(0, h * 0.45f, w, 40), sf);
-        g.DrawString("BRIAN HOWARD", creditFont, brush, new RectangleF(0, h * 0.52f, w, 40), sf);
-        g.DrawString("COPYRIGHT 1979, APPLE COMPUTER INC.", creditFont, brush, new RectangleF(0, h * 0.65f, w, 40), sf);
-        g.DrawString("Windowed in C# By Alan Burr", creditFont, brush, new RectangleF(0, h * 0.72f, w, 40), sf);
-        g.DrawString("PRESS ENTER TO CONTINUE...", creditFont, brush, new RectangleF(0, h * 0.85f, w, 40), sf);
+        float w = drawRect.Width;
+        float h = drawRect.Height;
+        float x = drawRect.X;
+        float y = drawRect.Y;
+
+        g.DrawString("BRIAN'S THEME", titleFont, brush, new RectangleF(x, y + h * 0.20f, w, 70), sf);
+        g.DrawString("BY", byFont, brush, new RectangleF(x, y + h * 0.45f, w, 40), sf);
+        g.DrawString("BRIAN HOWARD", creditFont, brush, new RectangleF(x, y + h * 0.52f, w, 40), sf);
+        g.DrawString("COPYRIGHT 1979, APPLE COMPUTER INC.", creditFont, brush, new RectangleF(x, y + h * 0.65f, w, 40), sf);
+        g.DrawString("Windowed in C# By Alan Burr", creditFont, brush, new RectangleF(x, y + h * 0.72f, w, 40), sf);
+        g.DrawString("PRESS ENTER TO CONTINUE...", creditFont, brush, new RectangleF(x, y + h * 0.85f, w, 40), sf);
+    }
+
+    protected override async void OnResize(EventArgs e)
+    {
+        base.OnResize(e);
+
+        // Clear and dispose the bitmap so the animation recreates it at the new size.
+        lock (_bitmapLock)
+        {
+            try { _bitmap?.Dispose(); } catch { }
+            _bitmap = null;
+        }
+
+        try { Invalidate(); } catch { }
+
+        // If animation was running, stop it and await its shutdown, then restart so it uses the new size.
+        try
+        {
+            if (_running)
+            {
+                await StopAnimationAsync().ConfigureAwait(false);
+                // Ensure resume on UI thread before starting the animation
+                try { StartAnimation(); } catch { }
+            }
+        }
+        catch { }
     }
 
     private void StartAnimation()
@@ -256,16 +378,39 @@ public partial class Form1 : Form
 
         // run async loop without blocking UI thread
         var token = _cts.Token;
-        Task.Run(async () => await AnimationLoopAsync(token), token);
+        // keep a reference to the running task so callers can await its completion
+        _animationTask = Task.Run(async () => await AnimationLoopAsync(token), token);
     }
 
-    private void StopAnimation()
+    private async Task StopAnimationAsync()
     {
         if (!_running) return;
-        _cts?.Cancel();
-        _cts?.Dispose();
-        _cts = null;
-        _running = false;
+
+        // signal the loop to stop
+        try { _cts?.Cancel(); } catch { }
+
+        // wait for the background task to finish (it should exit on cancellation)
+        try
+        {
+            if (_animationTask != null)
+                await _animationTask.ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) { }
+        catch { }
+        finally
+        {
+            try { _cts?.Dispose(); } catch { }
+            _cts = null;
+            _animationTask = null;
+            _running = false;
+        }
+    }
+
+    // legacy synchronous wrapper kept for compatibility with existing code paths
+    private void StopAnimation()
+    {
+        // fire-and-forget stopping; callers that need to await should use StopAnimationAsync
+        _ = StopAnimationAsync();
     }
 
     private async Task AnimationLoopAsync(CancellationToken token)
@@ -274,8 +419,11 @@ public partial class Form1 : Form
         {
             while (!token.IsCancellationRequested)
             {
+                var topOffset = _menuStrip?.Height ?? 0;
+                var bottomOffset = _statusLabel?.Height ?? 0;
+
                 int width = Math.Max(1, ClientSize.Width);
-                int height = Math.Max(1, ClientSize.Height);
+                int height = Math.Max(1, ClientSize.Height - topOffset - bottomOffset);
 
                 float sx = width / 280f;
                 float sy = height / 160f;
@@ -286,7 +434,7 @@ public partial class Form1 : Form
 
                 if (_statusLabel != null)
                 {
-                    try { BeginInvoke((Action)(() => _statusLabel.Text = $"Stepping by {step} — Press Esc to Stop")); }
+                    try { BeginInvoke((Action)(() => _statusLabel.Text = $"STEPPING BY {step}\n<PRESS THE 'ESC' KEY TO STOP>")); }
                     catch { }
                 }
 

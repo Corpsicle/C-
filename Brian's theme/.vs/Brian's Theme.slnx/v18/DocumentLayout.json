@@ -31,8 +31,7 @@
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAAIAAAANAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2026-07-17T14:30:42.265Z",
-              "IsPinned": true,
-              "EditorCaption": ""
+              "IsPinned": true
             },
             {
               "$type": "Bookmark",
@@ -94,7 +93,7 @@
               "RelativeDocumentMoniker": "Form1.cs",
               "ToolTip": "C:\\Users\\alanb\\source\\repos\\C#\\Brian\u0027s theme\\Form1.cs",
               "RelativeToolTip": "Form1.cs",
-              "ViewState": "AgIAACQAAAAAAAAAAIAYwBcAAAAnAAAAAAAAAA==",
+              "ViewState": "AgIAACgAAAAAYMzMzMzovyEAAAASAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2026-07-24T16:12:48.771Z",
               "EditorCaption": ""
